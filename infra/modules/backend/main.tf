@@ -497,6 +497,24 @@ resource "aws_api_gateway_integration" "pedidos" {
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
+resource "aws_api_gateway_method" "pedidos_get" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.pedidos.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "pedidos" {
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = aws_api_gateway_resource.pedidos.id
+  http_method             = aws_api_gateway_method.pedidos_get.http_method
+  integration_http_method = "GET"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.controller.invoke_arn
+}
+
+
+
 resource "aws_api_gateway_deployment" "this" {
   depends_on = [
     aws_api_gateway_integration.pedidos
