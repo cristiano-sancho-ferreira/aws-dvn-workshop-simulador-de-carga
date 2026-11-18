@@ -1,4 +1,4 @@
-# Workshop DVN · Black Friday Lab
+# Workshop DVN · 14 e 15 de novembro
 
 Simulador de carga do workshop **DevOps na Nuvem (DVN)**. Um e-commerce de demonstração recebe milhares de pedidos de Black Friday e deixa à mostra cada peça da arquitetura serverless: onde o pedido entra, onde ele espera e onde o estoque é atualizado.
 

@@ -48,8 +48,7 @@ phases:
       # ── Empacota o Site ───────────────────────────────────────────────
       - cd "$CODEBUILD_SRC_DIR/site"
       - npm install
-      - npm rum build
-      - cd ..
+      - npm run build
 
       # Buildar os codigos dos Lambdas da pasta backend 
       - cd "$CODEBUILD_SRC_DIR/backend"

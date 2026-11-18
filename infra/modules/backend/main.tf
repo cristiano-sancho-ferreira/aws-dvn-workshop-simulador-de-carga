@@ -33,6 +33,29 @@ resource "aws_s3_bucket_policy" "this" {
 
 
 # ============================================================
+# WAFv2 (escopo CloudFront)
+# WAFs associados ao CloudFront precisam estar em us-east-1.
+# ============================================================
+
+resource "aws_wafv2_web_acl" "chatbot" {
+  name        = "${var.name_prefix}-waf"
+  description = "WAF do CloudFront do workshop DVN"
+  scope       = "CLOUDFRONT"
+
+  default_action {
+    allow {}
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "dvnWorkshopWaf"
+    sampled_requests_enabled   = true
+  }
+
+  tags = var.common_tags
+}
+
+# ============================================================
 # Distribuição CloudFront
 # ============================================================
 
@@ -102,12 +125,13 @@ resource "aws_cloudfront_origin_access_control" "this" {
 
 # ============================================================
 # Zips das Lambdas
-# Gerados pelo deploy.ps1 / deploy.sh antes do terraform apply.
-# Caminho: infra/.terraform/<nome>.zip
+# O buildspec gera os zips em backend/dist/ (raiz do repositório).
+# A partir deste módulo (infra/modules/backend), sobem três níveis até a
+# raiz e entra em backend/dist.
 # ============================================================
 
 locals {
-  zip_dir = "${path.module}/../backend/dist"
+  zip_dir = "${path.module}/../../../backend/dist"
 }
 
 # ============================================================
@@ -308,12 +332,10 @@ resource "aws_sqs_queue" "dlq" {
 # ============================================================
 
 resource "aws_dynamodb_table" "this" {
-  name           = "dvn-workshop-table"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "pk"
-  range_key      = "sk"
-  read_capacity  = 5
-  write_capacity = 5
+  name         = "dvn-workshop-table"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "pk"
+  range_key    = "sk"
 
   attribute {
     name = "pk"
