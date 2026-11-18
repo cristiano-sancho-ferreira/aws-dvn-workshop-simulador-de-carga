@@ -3,7 +3,7 @@
 # ============================================================
 
 locals {
-  name_prefix = "${var.organization_name}-${var.application_name}-${var.environment}"
+  name_prefix = "${var.organization_name}-${var.environment}-million-orders-60s"
   bucket_name = local.name_prefix
   common_tags = merge(
     var.common_tags,
