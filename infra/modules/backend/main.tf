@@ -513,7 +513,7 @@ resource "aws_api_gateway_integration" "pedidos_get" {
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
-resource "aws_api_gateway_resource" "pedidos" {
+resource "aws_api_gateway_resource" "pedidos_runid" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   parent_id   = aws_api_gateway_resource.pedidos.id
   path_part   = "{runid}"
