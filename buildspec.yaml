@@ -46,16 +46,18 @@ phases:
       - aws s3 cp $ENV.tfvars s3://${TF_BUCKET}/clients/$TF_ACCOUNT/$ENV/$TF_MODULE/$ENV.tfvars
 
       # ── Empacota o Site ───────────────────────────────────────────────
-      - cd site
+      - cd "$CODEBUILD_SRC_DIR/site"
       - npm install
       - npm rum build
+      - cd ..
 
       # Buildar os codigos dos Lambdas da pasta backend 
-      - ../cd backend
+      - cd "$CODEBUILD_SRC_DIR/backend"
       - npm ci
       - npm run build
       - npm prune --omit=dev
-      - ../cd dist
+      
+      - cd "$CODEBUILD_SRC_DIR/backend/dist"
       - zip -r lambda-controller.zip lambda-controller shared && (cd .. && zip -r "$OLDPWD/lambda-controller.zip" package.json node_modules)
       - zip -r lambda-generator.zip lambda-generator shared && (cd .. && zip -r "$OLDPWD/lambda-generator.zip" package.json node_modules)
       - zip -r lambda-processor.zip lambda-processor shared && (cd .. && zip -r "$OLDPWD/lambda-processor.zip" package.json node_modules)
