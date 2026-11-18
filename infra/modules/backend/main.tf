@@ -253,6 +253,23 @@ resource "aws_iam_role" "controller" {
       Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
       Action    = "sts:AssumeRole"
+      }]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy" "controller" {
+  name = "${var.name_prefix}-controller-lambda-policy"
+  role = aws_iam_role.controller.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:*:*:*"
       },
       {
         Effect = "Allow"
@@ -283,24 +300,6 @@ resource "aws_iam_role" "controller" {
         Resource = [
           aws_lambda_function.generator.arn
         ]
-      }
-    ]
-  })
-
-  tags = var.common_tags
-}
-
-resource "aws_iam_role_policy" "controller" {
-  name = "${var.name_prefix}-controller-lambda-policy"
-  role = aws_iam_role.controller.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect   = "Allow"
-        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
-        Resource = "arn:aws:logs:*:*:*"
       }
     ]
   })
@@ -479,7 +478,7 @@ resource "aws_api_gateway_rest_api" "this" {
 resource "aws_api_gateway_resource" "pedidos" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   parent_id   = aws_api_gateway_rest_api.this.root_resource_id
-  path_part   = "pedidos"
+  path_part   = "runs"
 }
 
 resource "aws_api_gateway_method" "pedidos_post" {
