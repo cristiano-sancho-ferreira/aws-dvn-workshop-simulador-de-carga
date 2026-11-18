@@ -488,7 +488,7 @@ resource "aws_api_gateway_method" "pedidos_post" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "pedidos" {
+resource "aws_api_gateway_integration" "pedidos_post" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
   resource_id             = aws_api_gateway_resource.pedidos.id
   http_method             = aws_api_gateway_method.pedidos_post.http_method
@@ -504,7 +504,7 @@ resource "aws_api_gateway_method" "pedidos_get" {
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "pedidos" {
+resource "aws_api_gateway_integration" "pedidos_get" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
   resource_id             = aws_api_gateway_resource.pedidos.id
   http_method             = aws_api_gateway_method.pedidos_get.http_method
