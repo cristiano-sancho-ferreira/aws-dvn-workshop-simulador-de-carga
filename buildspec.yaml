@@ -1,0 +1,82 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 26.0
+    commands:
+      - export TF_MODULE="dvn-workshop"  
+      - export TF_VERSION="1.15.9"
+      - export ENV="prd"
+      - export TF_COMMAND="apply" 
+      - export TF_ORG="chatbot"
+      
+      - echo "=== Configuracao ==="
+      - echo "ENV=$ENV  |  TF_COMMAND=$TF_COMMAND  |  TF_VERSION=$TF_VERSION | TF_BUCKET=$TF_BUCKET"
+
+      - apt install unzip -y
+      - docker --version      
+      - dotnet --version
+
+      - |
+        if aws s3 ls s3://${TF_BUCKET}/artifactory/terraform_${TF_VERSION}_linux_amd64.zip ; then
+          echo "Terraform already exists in S3, downloading..."
+          aws s3 cp s3://${TF_BUCKET}/artifactory/terraform_${TF_VERSION}_linux_amd64.zip .
+        else
+          echo "Terraform not found in S3, downloading from the internet..."
+          wget https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip
+          aws s3 cp terraform_${TF_VERSION}_linux_amd64.zip s3://${TF_BUCKET}/artifactory/terraform_${TF_VERSION}_linux_amd64.zip
+        fi
+      - "unzip terraform_${TF_VERSION}_linux_amd64.zip"
+      - "chmod +x terraform"
+      - "mv terraform /usr/local/bin/"
+      - "pwd"
+
+  pre_build:
+    commands:
+      - python parameters.py chatbot $ENV
+      - ls -la
+
+      # Extrai account_client do tfvars gerado — usado nos caminhos do S3
+      - export TF_ACCOUNT=$(grep 'account_client' $ENV.tfvars | tr -d ' "' | cut -d'=' -f2)
+      - export TF_REGION=$(grep '^region' $ENV.tfvars | tr -d ' "' | cut -d'=' -f2)
+      - echo "TF_ACCOUNT=$TF_ACCOUNT"
+      - echo "TF_REGION=$TF_REGION"
+
+      - aws s3 cp $ENV.tfvars s3://${TF_BUCKET}/clients/$TF_ACCOUNT/$ENV/$TF_MODULE/$ENV.tfvars
+
+      # ── Empacota o Site ───────────────────────────────────────────────
+      - cd site
+      - npm install
+      - npm rum build
+
+      # Buildar os codigos dos Lambdas da pasta backend 
+      - ../cd backend
+      - npm ci
+      - npm run build
+      - npm prune --omit=dev
+      - ../cd dist
+      - zip -r lambda-controller.zip lambda-controller shared && (cd .. && zip -r "$OLDPWD/lambda-controller.zip" package.json node_modules)
+      - zip -r lambda-generator.zip lambda-generator shared && (cd .. && zip -r "$OLDPWD/lambda-generator.zip" package.json node_modules)
+      - zip -r lambda-processor.zip lambda-processor shared && (cd .. && zip -r "$OLDPWD/lambda-processor.zip" package.json node_modules)
+
+      - cd $CODEBUILD_SRC_DIR/infra
+      - echo "=== Terraform $TF_COMMAND  [ENV=$ENV] ==="
+      - pwd
+
+      # Inicializa o Terraform
+      - terraform init -var-file="../$ENV.tfvars" -backend-config="region=us-east-2" -backend-config="bucket=${TF_BUCKET}" -backend-config="key=clients/$TF_ACCOUNT/$ENV/$TF_MODULE/terraform.tfstate" -migrate-state
+      - terraform validate
+      - terraform version
+
+  build:
+    commands:
+
+      - echo "Running Terraform $TF_COMMAND"
+      - terraform $TF_COMMAND -auto-approve -var-file="../$ENV.tfvars" -parallelism=3
+    
+  post_build:
+    commands:
+      - echo "Terraform $TF_COMMAND [ENV=$ENV] finalizado em $(date)"
+
+

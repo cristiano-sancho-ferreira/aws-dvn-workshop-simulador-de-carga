@@ -1,0 +1,329 @@
+# ============================================================
+# Bucket S3
+# ============================================================
+
+resource "aws_s3_bucket" "this" {
+  bucket        = var.bucket_name
+  force_destroy = true
+  tags          = merge(var.common_tags, { Name = var.bucket_name })
+}
+
+# Política do bucket: nega tudo, exceto leitura vinda da distribuição CloudFront abaixo.
+resource "aws_s3_bucket_policy" "this" {
+  bucket = aws_s3_bucket.this.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "AllowCloudFrontServicePrincipalReadOnly"
+        Effect    = "Allow"
+        Principal = { Service = "cloudfront.amazonaws.com" }
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.this.arn}/*"
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.this.arn
+          }
+        }
+      }
+    ]
+  })
+}
+
+
+
+# ============================================================
+# Distribuição CloudFront
+# ============================================================
+
+resource "aws_cloudfront_distribution" "this" {
+  enabled             = true
+  is_ipv6_enabled     = true
+  default_root_object = "index.html"
+  comment             = ""
+  tags                = merge(var.common_tags, { Name = var.name_prefix })
+
+  # WAF associado diretamente aqui — é a única forma suportada para CloudFront.
+  # aws_wafv2_web_acl_association não funciona com distribuições CloudFront.
+  web_acl_id = aws_wafv2_web_acl.chatbot.arn
+
+  origin {
+    domain_name              = aws_s3_bucket.this.bucket_regional_domain_name
+    origin_id                = "s3-frontend"
+    origin_access_control_id = aws_cloudfront_origin_access_control.this.id
+  }
+
+  default_cache_behavior {
+    allowed_methods        = ["GET", "HEAD"]
+    cached_methods         = ["GET", "HEAD"]
+    target_origin_id       = "s3-frontend"
+    viewer_protocol_policy = "redirect-to-https"
+    compress               = true
+
+    # Cache "managed" da AWS otimizado para conteúdo estático (CachingOptimized)
+    cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  }
+
+  # SPA: qualquer rota que não exista no S3 (403/404) cai no index.html
+  # com status 200, pra o React Router (se você adicionar) cuidar da rota no client.
+  custom_error_response {
+    error_code         = 403
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+
+  custom_error_response {
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
+  }
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  viewer_certificate {
+    cloudfront_default_certificate = true
+  }
+}
+
+# Origin Access Control: permite que só esta distribuição CloudFront
+# específica leia objetos do bucket (substitui o antigo OAI).
+resource "aws_cloudfront_origin_access_control" "this" {
+  name                              = "${var.name_prefix}-oac"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+
+
+# ============================================================
+# Zips das Lambdas
+# Gerados pelo deploy.ps1 / deploy.sh antes do terraform apply.
+# Caminho: infra/.terraform/<nome>.zip
+# ============================================================
+
+locals {
+  zip_dir = "${path.module}/../backend/dist"
+}
+
+# ============================================================
+# Funções Lambda
+# ============================================================
+
+resource "aws_lambda_function" "controller" {
+  function_name    = "${var.name_prefix}-controller"
+  role             = aws_iam_role.controller.arn
+  handler          = "index.handler"
+  runtime          = "nodejs26.x"
+  filename         = "${local.zip_dir}/lambda-controller.zip"
+  source_code_hash = filebase64sha256("${local.zip_dir}/lambda-controller.zip")
+  timeout          = 10
+
+  environment {
+    variables = {
+      TABLE     = "dvn-workshop-table"
+      GENERATOR = aws_lambda_function.generator.function_name
+      QUEUE     = aws_sqs_queue.this.url
+      DLQ       = aws_sqs_queue.dlq.url
+    }
+  }
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-controller" })
+}
+
+
+resource "aws_lambda_function" "generator" {
+  function_name    = "${var.name_prefix}-generator"
+  role             = aws_iam_role.generator.arn
+  handler          = "index.handler"
+  runtime          = "nodejs26.x"
+  filename         = "${local.zip_dir}/lambda-generator.zip"
+  source_code_hash = filebase64sha256("${local.zip_dir}/lambda-generator.zip")
+  timeout          = 10
+
+  environment {
+    variables = {
+      TABLE = "dvn-workshop-table"
+    }
+  }
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-generator" })
+}
+
+
+resource "aws_lambda_function" "processor" {
+  function_name    = "${var.name_prefix}-processor"
+  role             = aws_iam_role.processor.arn
+  handler          = "index.handler"
+  runtime          = "nodejs26.x"
+  filename         = "${local.zip_dir}/lambda-processor.zip"
+  source_code_hash = filebase64sha256("${local.zip_dir}/lambda-processor.zip")
+  timeout          = 10
+
+  environment {
+    variables = {
+      TABLE = "dvn-workshop-table"
+    }
+  }
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-processor" })
+}
+
+# ============================================================
+# IAM — Lambda controller
+# ============================================================
+
+resource "aws_iam_role" "controller" {
+  name = "${var.name_prefix}-controller-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy" "controller" {
+  name = "${var.name_prefix}-controller-lambda-policy"
+  role = aws_iam_role.controller.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "generator" {
+  name = "${var.name_prefix}-generator-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy" "generator" {
+  name = "${var.name_prefix}-generator-lambda-policy"
+  role = aws_iam_role.generator.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role" "processor" {
+  name = "${var.name_prefix}-processor-lambda-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy" "processor" {
+  name = "${var.name_prefix}-processor-lambda-policy"
+  role = aws_iam_role.processor.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:*:*:*"
+      }
+    ]
+  })
+}
+
+
+# ============================================================
+# SQS Fifo
+# ============================================================
+
+resource "aws_sqs_queue" "this" {
+  name                        = "${var.name_prefix}-pedidos.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
+  deduplication_scope         = "queue"
+  message_retention_seconds   = 1209600
+  visibility_timeout_seconds  = 30
+
+  # Após maxReceiveCount tentativas de processamento sem sucesso,
+  # a mensagem é automaticamente movida para a DLQ.
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.dlq.arn
+    maxReceiveCount     = 3
+  })
+
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-pedidos.fifo" })
+}
+
+resource "aws_sqs_queue" "dlq" {
+  name                        = "${var.name_prefix}-pedidos-dlq.fifo"
+  fifo_queue                  = true
+  content_based_deduplication = true
+  deduplication_scope         = "queue"
+  message_retention_seconds   = 1209600
+  visibility_timeout_seconds  = 30
+
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-pedidos-dlq.fifo" })
+}
+
+
+
+# ============================================================
+# DynamoDB
+# ============================================================
+
+resource "aws_dynamodb_table" "this" {
+  name           = "dvn-workshop-table"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "pk"
+  range_key      = "sk"
+  read_capacity  = 5
+  write_capacity = 5
+
+  attribute {
+    name = "pk"
+    type = "S"
+  }
+
+  attribute {
+    name = "sk"
+    type = "S"
+  }
+
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-dvn-workshop-table" })
+}

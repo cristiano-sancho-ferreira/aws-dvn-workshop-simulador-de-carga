@@ -1,0 +1,21 @@
+1. Criar um bucket
+2. Criar ClodFront apontando para o bucket criado.
+3. Fazer deploy do site:
+   cd site
+   npm install
+   npm rum build
+4. Subir os arquivos gerados no dist para o bucket
+5. No CloudFront incluir o index.html
+6. Cria a API Gateway (Rest)
+7. Buildar os codigos dos Lambdas da pasta backend com os comando abaixo:
+    cd backend &&
+    npm ci &&
+    npm run build &&
+    npm prune --omit=dev &&
+    cd dist
+
+    tar -a -cf lambda-controller.zip lambda-controller shared -C .. package.json node_modules
+    tar -a -cf lambda-generator.zip lambda-generator shared -C .. package.json node_modules
+    tar -a -cf lambda-processor.zip lambda-processor shared -C .. package.json node_modules
+
+Agora crie as lambdas com esse arquivos zips
