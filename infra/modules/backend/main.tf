@@ -32,12 +32,14 @@ resource "aws_s3_bucket_policy" "this" {
 
 
 
+
+
 # ============================================================
 # WAFv2 (escopo CloudFront)
 # WAFs associados ao CloudFront precisam estar em us-east-1.
 # ============================================================
 
-resource "aws_wafv2_web_acl" "chatbot" {
+resource "aws_wafv2_web_acl" "this" {
   name        = "${var.name_prefix}-waf"
   description = "WAF do CloudFront do workshop DVN"
   scope       = "CLOUDFRONT"
@@ -68,7 +70,7 @@ resource "aws_cloudfront_distribution" "this" {
 
   # WAF associado diretamente aqui — é a única forma suportada para CloudFront.
   # aws_wafv2_web_acl_association não funciona com distribuições CloudFront.
-  web_acl_id = aws_wafv2_web_acl.chatbot.arn
+  web_acl_id = aws_wafv2_web_acl.this.arn
 
   origin {
     domain_name              = aws_s3_bucket.this.bucket_regional_domain_name
@@ -121,12 +123,56 @@ resource "aws_cloudfront_origin_access_control" "this" {
   signing_protocol                  = "sigv4"
 }
 
+# ============================================================
+# Site estático (upload de site/dist para o bucket)
+# O buildspec gera o build do site em site/dist/ antes do terraform.
+# O fileset varre recursivamente (inclui a pasta assets/) e cada arquivo
+# vira um aws_s3_object; arquivos que saem do build são removidos no apply.
+# ============================================================
 
+locals {
+  site_dir   = "${path.module}/../../../site/dist"
+  site_files = fileset(local.site_dir, "**/*")
+  mime_types = {
+    ".html"  = "text/html"
+    ".js"    = "application/javascript"
+    ".mjs"   = "application/javascript"
+    ".css"   = "text/css"
+    ".json"  = "application/json"
+    ".map"   = "application/json"
+    ".svg"   = "image/svg+xml"
+    ".png"   = "image/png"
+    ".jpg"   = "image/jpeg"
+    ".jpeg"  = "image/jpeg"
+    ".gif"   = "image/gif"
+    ".webp"  = "image/webp"
+    ".ico"   = "image/x-icon"
+    ".woff"  = "font/woff"
+    ".woff2" = "font/woff2"
+    ".ttf"   = "font/ttf"
+    ".otf"   = "font/otf"
+    ".txt"   = "text/plain"
+    ".xml"   = "application/xml"
+    ".pdf"   = "application/pdf"
+  }
+}
+
+resource "aws_s3_object" "site" {
+  for_each = local.site_files
+
+  bucket       = aws_s3_bucket.this.id
+  key          = each.value
+  source       = "${local.site_dir}/${each.value}"
+  etag         = filemd5("${local.site_dir}/${each.value}")
+  content_type = lookup(local.mime_types, try(regex("\\.[^.]+$", each.value), ""), "application/octet-stream")
+
+  tags = var.common_tags
+}
 
 # ============================================================
 # Zips das Lambdas
 # O buildspec gera os zips em backend/dist/ (raiz do repositório).
-# A partir deste módulo (infra/modules/backend), sobem três níveis até a
+# A partir deste módulo (infra/modules/backend), sobem tres niveis ate a
 # raiz e entra em backend/dist.
 # ============================================================
 

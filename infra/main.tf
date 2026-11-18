@@ -10,9 +10,10 @@ locals {
     {
       Organization = var.organization_name
       Environment  = var.environment
-      Application  = var.application_name
+      Application  = "million-orders-60s"
       Project      = "dvn-workshop"
     }
+
   )
 }
 
@@ -24,7 +25,7 @@ module "backend" {
   source = "./modules/backend"
   region            = var.region
   environment       = var.environment
-  application_name  = var.application_name
+  application_name  = "million-orders-60s"
   organization_name = var.organization_name
   bucket_name       = local.bucket_name
   name_prefix       = local.name_prefix
