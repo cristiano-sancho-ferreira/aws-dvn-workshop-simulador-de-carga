@@ -17,17 +17,11 @@ locals {
 }
 
 # ============================================================
-# Módulo Frontend (S3 + CloudFront + Cognito)
+# Módulo Backend (S3 + CloudFront + Lambda)
 # ============================================================
 
-module "frontend" {
+module "backend" {
   source = "./modules/backend"
-
-  providers = {
-    aws           = aws
-    aws.us_east_1 = aws.us_east_1
-  }
-
   region            = var.region
   environment       = var.environment
   application_name  = var.application_name
