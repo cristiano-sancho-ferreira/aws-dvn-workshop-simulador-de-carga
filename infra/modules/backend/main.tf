@@ -253,7 +253,38 @@ resource "aws_iam_role" "controller" {
       Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
       Action    = "sts:AssumeRole"
-    }]
+      },
+      {
+        Effect = "Allow"
+        Action = ["dynamodb:GetItem",
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query"
+        ]
+        Resource = [
+          aws_dynamodb_table.this.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [
+          aws_sqs_queue.this.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["lambda:InvokeFunction"
+        ]
+        Resource = [
+          aws_lambda_function.generator.arn
+        ]
+      }
+    ]
   })
 
   tags = var.common_tags
@@ -301,6 +332,12 @@ resource "aws_iam_role_policy" "generator" {
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = ["dynamodb:PutItem",
+        "dynamodb:UpdateItem"]
+        Resource = aws_dynamodb_table.this.arn
       }
     ]
   })
@@ -332,6 +369,27 @@ resource "aws_iam_role_policy" "processor" {
         Effect   = "Allow"
         Action   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = "arn:aws:logs:*:*:*"
+      },
+      {
+        Effect = "Allow"
+        Action = ["dynamodb:GetItem",
+          "dynamodb:BatchGetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem"
+        ]
+        Resource = [
+          aws_dynamodb_table.this.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:GetQueueAttributes"
+        ]
+        Resource = [
+          aws_sqs_queue.this.arn
+        ]
       }
     ]
   })
@@ -382,6 +440,11 @@ resource "aws_dynamodb_table" "this" {
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "pk"
   range_key    = "sk"
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
 
   attribute {
     name = "pk"

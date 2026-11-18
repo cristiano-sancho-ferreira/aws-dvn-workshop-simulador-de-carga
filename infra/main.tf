@@ -22,7 +22,7 @@ locals {
 # ============================================================
 
 module "backend" {
-  source = "./modules/backend"
+  source            = "./modules/backend"
   region            = var.region
   environment       = var.environment
   application_name  = "million-orders-60s"
