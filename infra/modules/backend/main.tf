@@ -475,66 +475,72 @@ resource "aws_api_gateway_rest_api" "this" {
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-api" })
 }
 
-resource "aws_api_gateway_resource" "pedidos" {
+resource "aws_api_gateway_resource" "runs" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   parent_id   = aws_api_gateway_rest_api.this.root_resource_id
   path_part   = "runs"
 }
 
-resource "aws_api_gateway_method" "pedidos_post" {
+resource "aws_api_gateway_method" "runs_post" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.pedidos.id
+  resource_id   = aws_api_gateway_resource.runs.id
   http_method   = "POST"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "pedidos_post" {
+resource "aws_api_gateway_integration" "runs_post" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
-  resource_id             = aws_api_gateway_resource.pedidos.id
-  http_method             = aws_api_gateway_method.pedidos_post.http_method
+  resource_id             = aws_api_gateway_resource.runs.id
+  http_method             = aws_api_gateway_method.runs_post.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
-resource "aws_api_gateway_method" "pedidos_get" {
+resource "aws_api_gateway_method" "runs_get" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.pedidos.id
+  resource_id   = aws_api_gateway_resource.runs.id
   http_method   = "GET"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "pedidos_get" {
+resource "aws_api_gateway_integration" "runs_get" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
-  resource_id             = aws_api_gateway_resource.pedidos.id
-  http_method             = aws_api_gateway_method.pedidos_get.http_method
+  resource_id             = aws_api_gateway_resource.runs.id
+  http_method             = aws_api_gateway_method.runs_get.http_method
   integration_http_method = "GET"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
-resource "aws_api_gateway_resource" "pedidos_runid" {
+resource "aws_api_gateway_resource" "runs_runid" {
   rest_api_id = aws_api_gateway_rest_api.this.id
-  parent_id   = aws_api_gateway_resource.pedidos.id
+  parent_id   = aws_api_gateway_resource.runs.id
   path_part   = "{runid}"
 }
 
-resource "aws_api_gateway_method" "pedidos_runid_get" {
+resource "aws_api_gateway_method" "runs_runid_get" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.pedidos_runid.id
+  resource_id   = aws_api_gateway_resource.runs_runid.id
   http_method   = "GET"
   authorization = "NONE"
 }
 
-resource "aws_api_gateway_integration" "pedidos_runid_get" {
+resource "aws_api_gateway_integration" "runs_runid_get" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
-  resource_id             = aws_api_gateway_resource.pedidos_runid.id
-  http_method             = aws_api_gateway_method.pedidos_runid_get.http_method
+  resource_id             = aws_api_gateway_resource.runs_runid.id
+  http_method             = aws_api_gateway_method.runs_runid_get.http_method
   integration_http_method = "GET"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
+
+resource "aws_api_gateway_resource" "orders" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_rest_api.this.root_resource_id
+  path_part   = "orders"
+}
 
 # resource "aws_api_gateway_deployment" "this" {
 #   depends_on = [
