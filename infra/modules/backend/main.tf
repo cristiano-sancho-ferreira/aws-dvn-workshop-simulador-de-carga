@@ -598,8 +598,58 @@ EOF
 
 resource "aws_api_gateway_resource" "orders_batch" {
   rest_api_id = aws_api_gateway_rest_api.this.id
-  parent_id   = aws_api_gateway_rest_api.orders.id
+  parent_id   = aws_api_gateway_resource.orders.id
   path_part   = "batch"
+}
+
+
+resource "aws_api_gateway_method" "orders_batch_post" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.orders_batch.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "orders_batch_post" {
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = aws_api_gateway_resource.orders_batch.id
+  http_method             = aws_api_gateway_method.orders_batch_post.http_method
+  type                    = "AWS"
+  integration_http_method = "POST"
+  uri                     = "arn:aws:apigateway:${var.region}:sqs:path//"
+  credentials             = aws_iam_role.api_gateway.arn
+
+  request_templates = {
+    "application/json" = <<EOF
+Action=SendMessage&QueueUrl=$util.urlEncode('${aws_sqs_queue.this.url}')&MessageBody=$util.urlEncode($input.body)&MessageGroupId=$input.json('$.shard')
+EOF
+  }
+}
+
+
+resource "aws_api_gateway_method_response" "orders_batch_post_202" {
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = aws_api_gateway_resource.orders_batch.id
+  http_method       = aws_api_gateway_method.orders_batch_post.http_method
+  status_code       = "202"
+  response_models   = { "application/json" = "Empty" }
+}
+
+resource "aws_api_gateway_integration_response" "orders_post_202" {
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = aws_api_gateway_resource.orders_batch.id
+  http_method       = aws_api_gateway_method.orders_batch_post.http_method
+  status_code       = aws_api_gateway_method_response.orders_batch_post_202.status_code
+  response_templates = {
+    "application/json" = <<EOF
+{
+  "accepted": true,
+  "messageId": "$util.xpath('/*[local-name()=\"SendMessageResponse\"]/*[local-name()=\"SendMessageResult\"]/*[local-name()=\"MessageId\"]/text()', $input.path('$'))"
+}
+EOF
+  }
+
+  depends_on = [aws_api_gateway_integration.orders_batch_post]
 }
 
 
