@@ -395,3 +395,21 @@ resource "aws_dynamodb_table" "this" {
 
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-dvn-workshop-table" })
 }
+
+
+
+# ============================================================
+# API Gateway
+# ============================================================
+
+resource "aws_api_gateway_rest_api" "this" {
+  name        = var.name_prefix
+  description = "API Gateway para o ${var.name_prefix}"
+
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-api" })
+}
+
