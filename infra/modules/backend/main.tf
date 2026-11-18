@@ -542,6 +542,66 @@ resource "aws_api_gateway_resource" "orders" {
   path_part   = "orders"
 }
 
+resource "aws_api_gateway_method" "orders_post" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.orders.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+# ============================================================
+# Integração API Gateway → SQS para POST /orders
+# Publica mensagens direto na fila FIFO sem passar por Lambda.
+# ============================================================
+
+resource "aws_api_gateway_method" "orders_post" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.orders.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "orders_post" {
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = aws_api_gateway_resource.orders.id
+  http_method             = aws_api_gateway_method.orders_post.http_method
+  type                    = "AWS"
+  integration_http_method = "POST"
+  uri                     = "arn:aws:apigateway:${var.region}:sqs:path//"
+  credentials             = aws_iam_role.api_gateway.arn
+
+  request_templates = {
+    "application/json" = <<EOF
+Action=SendMessage&QueueUrl=$util.urlEncode('${aws_sqs_queue.this.url}')&MessageBody=$util.urlEncode($input.body)&MessageGroupId=$input.json('$.shard')
+EOF
+  }
+}
+
+resource "aws_api_gateway_method_response" "orders_post_202" {
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = aws_api_gateway_resource.orders.id
+  http_method       = aws_api_gateway_method.orders_post.http_method
+  status_code       = "202"
+  response_models   = { "application/json" = "Empty" }
+}
+
+resource "aws_api_gateway_integration_response" "orders_post_202" {
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = aws_api_gateway_resource.orders.id
+  http_method       = aws_api_gateway_method.orders_post.http_method
+  status_code       = aws_api_gateway_method_response.orders_post_202.status_code
+  response_templates = {
+    "application/json" = <<EOF
+{
+  "accepted": true,
+  "messageId": "$util.xpath('/*[local-name()=\"SendMessageResponse\"]/*[local-name()=\"SendMessageResult\"]/*[local-name()=\"MessageId\"]/text()', $input.path('$'))"
+}
+EOF
+  }
+}
+
+
+
 # resource "aws_api_gateway_deployment" "this" {
 #   depends_on = [
 #     aws_api_gateway_integration.pedidos
@@ -553,7 +613,7 @@ resource "aws_api_gateway_resource" "orders" {
 
 
 
-resource "aws_iam_role" "api" {
+resource "aws_iam_role" "api_gateway" {
   name = "${var.name_prefix}-api-gateway-role"
 
   assume_role_policy = jsonencode({
@@ -568,9 +628,9 @@ resource "aws_iam_role" "api" {
   tags = var.common_tags
 }
 
-resource "aws_iam_role_policy" "api" {
+resource "aws_iam_role_policy" "api_gateway" {
   name = "${var.name_prefix}-api-gateway-policy"
-  role = aws_iam_role.api.id
+  role = aws_iam_role.api_gateway.id
 
   policy = jsonencode({
     Version = "2012-10-17"
