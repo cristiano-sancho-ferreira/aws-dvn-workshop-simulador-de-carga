@@ -519,7 +519,21 @@ resource "aws_api_gateway_resource" "pedidos_runid" {
   path_part   = "{runid}"
 }
 
+resource "aws_api_gateway_method" "pedidos_runid_get" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.pedidos_runid.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
 
+resource "aws_api_gateway_integration" "pedidos_runid_get" {
+  rest_api_id             = aws_api_gateway_rest_api.this.id
+  resource_id             = aws_api_gateway_resource.pedidos_runid.id
+  http_method             = aws_api_gateway_method.pedidos_runid_get.http_method
+  integration_http_method = "GET"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.controller.invoke_arn
+}
 
 
 # resource "aws_api_gateway_deployment" "this" {
@@ -532,3 +546,36 @@ resource "aws_api_gateway_resource" "pedidos_runid" {
 # }
 
 
+
+resource "aws_iam_role" "processor" {
+  name = "${var.name_prefix}-api-gateway-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "apigateway.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+
+  tags = var.common_tags
+}
+
+resource "aws_iam_role_policy" "processor" {
+  name = "${var.name_prefix}-api-gateway-policy"
+  role = aws_iam_role.processor.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["sqs:ReceiveMessage"]
+        Resource = [
+          aws_sqs_queue.this.arn
+        ]
+      }
+    ]
+  })
+}
