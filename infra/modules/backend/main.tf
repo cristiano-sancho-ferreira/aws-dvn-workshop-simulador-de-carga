@@ -596,6 +596,14 @@ EOF
 }
 
 
+resource "aws_api_gateway_resource" "orders_batch" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  parent_id   = aws_api_gateway_rest_api.orders.root_resource_id
+  path_part   = "batch"
+}
+
+
+
 
 # resource "aws_api_gateway_deployment" "this" {
 #   depends_on = [
