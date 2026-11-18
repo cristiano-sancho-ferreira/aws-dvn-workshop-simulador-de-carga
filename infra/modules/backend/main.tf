@@ -591,6 +591,8 @@ resource "aws_api_gateway_integration_response" "orders_post_202" {
 }
 EOF
   }
+
+  depends_on = [aws_api_gateway_integration.orders_post]
 }
 
 
