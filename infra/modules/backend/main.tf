@@ -3,7 +3,7 @@
 # ============================================================
 
 resource "aws_s3_bucket" "this" {
-  bucket        = "${var.name_prefix}-waf"
+  bucket        = var.bucket_name
   force_destroy = true
   tags          = merge(var.common_tags, { Name = var.bucket_name })
 }
@@ -577,11 +577,30 @@ resource "aws_iam_role_policy" "api" {
     Statement = [
       {
         Effect = "Allow"
-        Action = ["sqs:ReceiveMessage"]
+        Action = ["sqs:SendMessage"]
         Resource = [
           aws_sqs_queue.this.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["lambda:InvokeFunction"]
+        Resource = [
+          aws_lambda_function.controller.arn
         ]
       }
     ]
   })
+}
+
+# ============================================================
+# Lambda permissions para API Gateway
+# ============================================================
+
+resource "aws_lambda_permission" "api_gateway_controller" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.controller.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.this.execution_arn}/*/*"
 }
