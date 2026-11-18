@@ -553,7 +553,7 @@ resource "aws_api_gateway_resource" "orders" {
 
 
 
-resource "aws_iam_role" "processor" {
+resource "aws_iam_role" "api" {
   name = "${var.name_prefix}-api-gateway-role"
 
   assume_role_policy = jsonencode({
@@ -568,9 +568,9 @@ resource "aws_iam_role" "processor" {
   tags = var.common_tags
 }
 
-resource "aws_iam_role_policy" "processor" {
+resource "aws_iam_role_policy" "api" {
   name = "${var.name_prefix}-api-gateway-policy"
-  role = aws_iam_role.processor.id
+  role = aws_iam_role.api.id
 
   policy = jsonencode({
     Version = "2012-10-17"
