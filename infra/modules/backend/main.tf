@@ -635,7 +635,7 @@ resource "aws_api_gateway_method_response" "orders_batch_post_202" {
   response_models   = { "application/json" = "Empty" }
 }
 
-resource "aws_api_gateway_integration_response" "orders_post_202" {
+resource "aws_api_gateway_integration_response" "orders_batch_post_202" {
   rest_api_id       = aws_api_gateway_rest_api.this.id
   resource_id       = aws_api_gateway_resource.orders_batch.id
   http_method       = aws_api_gateway_method.orders_batch_post.http_method
