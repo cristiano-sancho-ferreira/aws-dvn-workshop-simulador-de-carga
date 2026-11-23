@@ -936,15 +936,15 @@ resource "aws_api_gateway_stage" "prod" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
   deployment_id = aws_api_gateway_deployment.this.id
   stage_name    = "prod"
-
-  tags = var.common_tags
+  
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
 }
 
 resource "aws_api_gateway_api_key" "this" {
   name    = "${var.name_prefix}-key"
   enabled = true
 
-  tags = var.common_tags
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
 }
 
 resource "aws_api_gateway_usage_plan" "this" {
@@ -961,7 +961,7 @@ resource "aws_api_gateway_usage_plan" "this" {
     burst_limit = 400   # pico
   }
 
-  tags = var.common_tags
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
 }
 
 resource "aws_api_gateway_usage_plan_key" "this" {
@@ -973,6 +973,97 @@ resource "aws_api_gateway_usage_plan_key" "this" {
 output "api_key_value" {
   value     = aws_api_gateway_api_key.this.value
   sensitive = true
+}
+
+resource "aws_api_gateway_model" "order" {
+  rest_api_id  = aws_api_gateway_rest_api.this.id
+  name         = "Order"
+  content_type = "application/json"
+  description  = " orders request payload"
+  schema       = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "required": [
+    "runId",
+    "orderId",
+    "shard"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "runId": {
+      "type": "string",
+      "pattern": "^[a-f0-9-]{36}$"
+    },
+    "orderId": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+    },
+    "shard": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1023
+    },
+    "sentAt": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}
+EOF
+}
+
+resource "aws_api_gateway_model" "order_batch" {
+  rest_api_id  = aws_api_gateway_rest_api.this.id
+  name         = "OrderBatch"
+  content_type = "application/json"
+  description  = " orders request payload"
+  schema       = <<EOF
+{
+  {
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "type": "object",
+  "required": [
+    "orders"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "orders": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "items": {
+        "type": "object",
+        "required": [
+          "runId",
+          "orderId",
+          "shard"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "runId": {
+            "type": "string",
+            "pattern": "^[a-f0-9-]{36}$"
+          },
+          "orderId": {
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_-]{1,100}$"
+          },
+          "shard": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1023
+          },
+          "sentAt": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}
+EOF
 }
 
 
@@ -999,7 +1090,7 @@ resource "aws_iam_role" "api_gateway" {
     }]
   })
 
-  tags = var.common_tags
+  tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway-role" })
 }
 
 resource "aws_iam_role_policy" "api_gateway" {
