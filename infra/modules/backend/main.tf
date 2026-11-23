@@ -414,9 +414,6 @@ resource "aws_sqs_queue" "this" {
     maxReceiveCount     = 3
   })
 
-  # trigger lambda
-  depends_on = [aws_lambda_permission.sqs]
-
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
