@@ -240,6 +240,24 @@ resource "aws_lambda_function" "processor" {
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-processor" })
 }
 
+resource "aws_lambda_event_source_mapping" "sqs_processor" {
+  event_source_arn  = aws_sqs_queue.this.arn
+  function_name     = aws_lambda_function.processor.function_name
+  batch_size        = 10
+  batch_window      = 5
+  maximum_batching_window_in_seconds = 5
+  
+  depends_on = [aws_lambda_permission.allow_sqs]
+}
+
+resource "aws_lambda_permission" "allow_sqs" {
+  statement_id  = "AllowExecutionFromSQS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.processor.function_name
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.this.arn
+}
+
 # ============================================================
 # IAM — Lambda controller
 # ============================================================
