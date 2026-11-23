@@ -414,6 +414,25 @@ resource "aws_sqs_queue" "this" {
     maxReceiveCount     = 3
   })
 
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
+      {
+        "Effect" : "Allow",
+        "Principal" : {
+          "Service" : "sqs.amazonaws.com"
+        },
+        "Action" : "sqs:SendMessage",
+        "Resource" : aws_sqs_queue.this.arn,
+        "Condition" : {
+          "ArnEquals" : {
+            "aws:SourceArn" : aws_lambda_function.controller.arn
+          }
+        }
+      }
+    ]
+  })
+
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-pedidos.fifo" })
 }
 
