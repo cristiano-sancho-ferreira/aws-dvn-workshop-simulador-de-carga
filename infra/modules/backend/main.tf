@@ -486,6 +486,7 @@ resource "aws_api_gateway_method" "runs_post" {
   resource_id   = aws_api_gateway_resource.runs.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "runs_options" {
@@ -547,6 +548,7 @@ resource "aws_api_gateway_method" "runs_get" {
   resource_id   = aws_api_gateway_resource.runs.id
   http_method   = "GET"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_integration" "runs_get" {
@@ -593,6 +595,7 @@ resource "aws_api_gateway_method" "runs_runid_get" {
   resource_id   = aws_api_gateway_resource.runs_runid.id
   http_method   = "GET"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_integration" "runs_runid_get" {
@@ -690,6 +693,7 @@ resource "aws_api_gateway_method" "orders_post" {
   resource_id   = aws_api_gateway_resource.orders.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "orders_options" {
@@ -800,6 +804,7 @@ resource "aws_api_gateway_method" "orders_batch_post" {
   resource_id   = aws_api_gateway_resource.orders_batch.id
   http_method   = "POST"
   authorization = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_method" "orders_batch_options" {
@@ -898,9 +903,82 @@ EOF
 }
 
 
+resource "aws_api_gateway_deployment" "this" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
 
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_method.runs_post,
+      aws_api_gateway_method.runs_get,
+      aws_api_gateway_method.runs_runid_get,
+      aws_api_gateway_method.orders_post,
+      aws_api_gateway_method.orders_batch_post,
+      aws_api_gateway_integration.runs_post,
+      aws_api_gateway_integration.runs_get,
+      aws_api_gateway_integration.runs_runid_get,
+      aws_api_gateway_integration.orders_post,
+      aws_api_gateway_integration.orders_batch_post,
+      aws_api_gateway_integration.runs_options,
+      aws_api_gateway_integration.runs_runid_options,
+      aws_api_gateway_integration.orders_options,
+      aws_api_gateway_integration.orders_batch_options,
+      aws_api_gateway_integration_response.orders_post_202,
+      aws_api_gateway_integration_response.orders_batch_post_202,
+    ]))
+  }
 
+  lifecycle {
+    create_before_destroy = true
+  }
+}
 
+resource "aws_api_gateway_stage" "prod" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  deployment_id = aws_api_gateway_deployment.this.id
+  stage_name    = "prod"
+
+  tags = var.common_tags
+}
+
+resource "aws_api_gateway_api_key" "this" {
+  name    = "${var.name_prefix}-key"
+  enabled = true
+
+  tags = var.common_tags
+}
+
+resource "aws_api_gateway_usage_plan" "this" {
+  name        = "${var.name_prefix}-usage-plan"
+  description = "Plano de uso do ${var.name_prefix}"
+
+  api_stages {
+    api_id = aws_api_gateway_rest_api.this.id
+    stage  = aws_api_gateway_stage.prod.stage_name
+  }
+
+  throttle_settings {
+    rate_limit  = 10   # requisições/segundo (média)
+    burst_limit = 20   # pico
+  }
+
+  quota_settings {
+    limit  = 10000
+    period = "DAY"     # DAY | WEEK | MONTH
+  }
+
+  tags = var.common_tags
+}
+
+resource "aws_api_gateway_usage_plan_key" "this" {
+  key_id        = aws_api_gateway_api_key.this.id
+  key_type      = "API_KEY"
+  usage_plan_id = aws_api_gateway_usage_plan.this.id
+}
+
+output "api_key_value" {
+  value     = aws_api_gateway_api_key.this.value
+  sensitive = true
+}
 
 
 # resource "aws_api_gateway_deployment" "this" {
