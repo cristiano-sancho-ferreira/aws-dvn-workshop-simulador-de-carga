@@ -1020,7 +1020,6 @@ resource "aws_api_gateway_model" "order_batch" {
   description  = " orders request payload"
   schema       = <<EOF
 {
-  {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "type": "object",
   "required": [
