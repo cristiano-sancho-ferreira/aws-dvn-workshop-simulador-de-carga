@@ -536,16 +536,16 @@ resource "aws_api_gateway_integration" "runs_runid_get" {
 }
 
 
+# ============================================================
+# Integração API Gateway → SQS para POST /orders
+# Publica mensagens direto na fila FIFO sem passar por Lambda.
+# ============================================================
 resource "aws_api_gateway_resource" "orders" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   parent_id   = aws_api_gateway_rest_api.this.root_resource_id
   path_part   = "orders"
 }
 
-# ============================================================
-# Integração API Gateway → SQS para POST /orders
-# Publica mensagens direto na fila FIFO sem passar por Lambda.
-# ============================================================
 
 resource "aws_api_gateway_method" "orders_post" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
@@ -560,7 +560,8 @@ resource "aws_api_gateway_integration" "orders_post" {
   http_method             = aws_api_gateway_method.orders_post.http_method
   type                    = "AWS"
   integration_http_method = "POST"
-  uri                     = "arn:aws:apigateway:${var.region}:sqs:path//"
+  # Path override  
+  uri         = "arn:aws:apigateway:${var.region}:sqs:path/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}"
   credentials             = aws_iam_role.api_gateway.arn
 
   request_templates = {
@@ -616,7 +617,7 @@ resource "aws_api_gateway_integration" "orders_batch_post" {
   http_method             = aws_api_gateway_method.orders_batch_post.http_method
   type                    = "AWS"
   integration_http_method = "POST"
-  uri                     = "arn:aws:apigateway:${var.region}:sqs:path//"
+  uri                     = "arn:aws:apigateway:${var.region}:sqs:path/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}"
   credentials             = aws_iam_role.api_gateway.arn
 
   request_templates = {
