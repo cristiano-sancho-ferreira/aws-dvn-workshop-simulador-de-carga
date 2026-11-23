@@ -197,8 +197,8 @@ resource "aws_lambda_function" "controller" {
     variables = {
       TABLE     = "dvn-workshop-table"
       GENERATOR = aws_lambda_function.generator.function_name
-      QUEUE     = aws_sqs_queue.this.url
-      DLQ       = aws_sqs_queue.dlq.url
+      QUEUE     = "https://sqs.${var.region}.amazonaws.com/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}"
+      DLQ       = "https://sqs.${var.region}.amazonaws.com/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.dlq.name}"
     }
   }
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-controller" })
