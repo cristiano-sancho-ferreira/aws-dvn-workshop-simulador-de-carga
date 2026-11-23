@@ -689,11 +689,12 @@ resource "aws_api_gateway_resource" "orders" {
 
 
 resource "aws_api_gateway_method" "orders_post" {
-  rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.orders.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.orders.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = true
+  request_models   = { "application/json" = aws_api_gateway_model.order.name }
 }
 
 resource "aws_api_gateway_method" "orders_options" {
@@ -800,11 +801,12 @@ resource "aws_api_gateway_resource" "orders_batch" {
 
 
 resource "aws_api_gateway_method" "orders_batch_post" {
-  rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.orders_batch.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.orders_batch.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = true
+  request_models   = { "application/json" = aws_api_gateway_model.order_batch.name }
 }
 
 resource "aws_api_gateway_method" "orders_batch_options" {
@@ -1065,17 +1067,9 @@ resource "aws_api_gateway_model" "order_batch" {
 EOF
 }
 
-
-# resource "aws_api_gateway_deployment" "this" {
-#   depends_on = [
-#     aws_api_gateway_integration.pedidos
-#   ]
-
-#   rest_api_id = aws_api_gateway_rest_api.this.id
-#   # stage_name  = "prod"
-# }
-
-
+# ============================================================
+# IAM Role para API
+# ============================================================
 
 resource "aws_iam_role" "api_gateway" {
   name = "${var.name_prefix}-api-gateway-role"
