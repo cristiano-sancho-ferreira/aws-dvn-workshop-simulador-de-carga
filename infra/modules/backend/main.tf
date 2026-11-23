@@ -488,6 +488,51 @@ resource "aws_api_gateway_method" "runs_post" {
   authorization = "NONE"
 }
 
+resource "aws_api_gateway_method" "runs_options" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.runs.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "runs_options" {
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.runs.id
+  http_method      = aws_api_gateway_method.runs_options.http_method
+  type             = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "runs_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs.id
+  http_method = aws_api_gateway_method.runs_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "runs_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs.id
+  http_method = aws_api_gateway_method.runs_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_method_response.runs_options_200]
+}
+
 resource "aws_api_gateway_integration" "runs_post" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
   resource_id             = aws_api_gateway_resource.runs.id
@@ -513,6 +558,30 @@ resource "aws_api_gateway_integration" "runs_get" {
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
+resource "aws_api_gateway_method_response" "runs_get_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs.id
+  http_method = aws_api_gateway_method.runs_get.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "runs_get_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs.id
+  http_method = aws_api_gateway_method.runs_get.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.runs_get]
+}
+
 resource "aws_api_gateway_resource" "runs_runid" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   parent_id   = aws_api_gateway_resource.runs.id
@@ -535,6 +604,75 @@ resource "aws_api_gateway_integration" "runs_runid_get" {
   uri                     = aws_lambda_function.controller.invoke_arn
 }
 
+resource "aws_api_gateway_method" "runs_runid_options" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.runs_runid.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "runs_runid_options" {
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.runs_runid.id
+  http_method      = aws_api_gateway_method.runs_runid_options.http_method
+  type             = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "runs_runid_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs_runid.id
+  http_method = aws_api_gateway_method.runs_runid_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "runs_runid_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs_runid.id
+  http_method = aws_api_gateway_method.runs_runid_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_method_response.runs_runid_options_200]
+}
+
+resource "aws_api_gateway_method_response" "runs_runid_get_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs_runid.id
+  http_method = aws_api_gateway_method.runs_runid_get.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "runs_runid_get_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs_runid.id
+  http_method = aws_api_gateway_method.runs_runid_get.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.runs_runid_get]
+}
+
 
 # ============================================================
 # Integração API Gateway → SQS para POST /orders
@@ -552,6 +690,51 @@ resource "aws_api_gateway_method" "orders_post" {
   resource_id   = aws_api_gateway_resource.orders.id
   http_method   = "POST"
   authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "orders_options" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.orders.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "orders_options" {
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.orders.id
+  http_method      = aws_api_gateway_method.orders_options.http_method
+  type             = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "orders_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders.id
+  http_method = aws_api_gateway_method.orders_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "orders_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders.id
+  http_method = aws_api_gateway_method.orders_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_method_response.orders_options_200]
 }
 
 resource "aws_api_gateway_integration" "orders_post" {
@@ -577,6 +760,10 @@ resource "aws_api_gateway_method_response" "orders_post_202" {
   http_method       = aws_api_gateway_method.orders_post.http_method
   status_code       = "202"
   response_models   = { "application/json" = "Empty" }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
 }
 
 resource "aws_api_gateway_integration_response" "orders_post_202" {
@@ -591,6 +778,10 @@ resource "aws_api_gateway_integration_response" "orders_post_202" {
   "messageId": "$util.xpath('/*[local-name()=\"SendMessageResponse\"]/*[local-name()=\"SendMessageResult\"]/*[local-name()=\"MessageId\"]/text()', $input.path('$'))"
 }
 EOF
+  }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
   }
 
   depends_on = [aws_api_gateway_integration.orders_post]
@@ -609,6 +800,51 @@ resource "aws_api_gateway_method" "orders_batch_post" {
   resource_id   = aws_api_gateway_resource.orders_batch.id
   http_method   = "POST"
   authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "orders_batch_options" {
+  rest_api_id   = aws_api_gateway_rest_api.this.id
+  resource_id   = aws_api_gateway_resource.orders_batch.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "orders_batch_options" {
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.orders_batch.id
+  http_method      = aws_api_gateway_method.orders_batch_options.http_method
+  type             = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "orders_batch_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders_batch.id
+  http_method = aws_api_gateway_method.orders_batch_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "orders_batch_options_200" {
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders_batch.id
+  http_method = aws_api_gateway_method.orders_batch_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_method_response.orders_batch_options_200]
 }
 
 resource "aws_api_gateway_integration" "orders_batch_post" {
@@ -634,6 +870,10 @@ resource "aws_api_gateway_method_response" "orders_batch_post_202" {
   http_method       = aws_api_gateway_method.orders_batch_post.http_method
   status_code       = "202"
   response_models   = { "application/json" = "Empty" }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
 }
 
 resource "aws_api_gateway_integration_response" "orders_batch_post_202" {
@@ -648,6 +888,10 @@ resource "aws_api_gateway_integration_response" "orders_batch_post_202" {
   "messageId": "$util.xpath('/*[local-name()=\"SendMessageResponse\"]/*[local-name()=\"SendMessageResult\"]/*[local-name()=\"MessageId\"]/text()', $input.path('$'))"
 }
 EOF
+  }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
   }
 
   depends_on = [aws_api_gateway_integration.orders_batch_post]
