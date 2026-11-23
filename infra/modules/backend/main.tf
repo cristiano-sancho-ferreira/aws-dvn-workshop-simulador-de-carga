@@ -414,6 +414,9 @@ resource "aws_sqs_queue" "this" {
     maxReceiveCount     = 3
   })
 
+  # trigger lambda
+  depends_on = [aws_lambda_permission.sqs]
+
   policy = jsonencode({
     "Version" : "2012-10-17",
     "Statement" : [
@@ -445,6 +448,14 @@ resource "aws_sqs_queue" "dlq" {
   visibility_timeout_seconds  = 30
 
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-pedidos-dlq.fifo" })
+}
+
+resource "aws_lambda_permission" "sqs" {
+  statement_id  = "AllowExecutionFromSQS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.controller.function_name
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.this.arn  
 }
 
 
