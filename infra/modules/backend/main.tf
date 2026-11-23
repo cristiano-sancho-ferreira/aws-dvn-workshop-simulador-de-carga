@@ -957,13 +957,8 @@ resource "aws_api_gateway_usage_plan" "this" {
   }
 
   throttle_settings {
-    rate_limit  = 10   # requisições/segundo (média)
-    burst_limit = 20   # pico
-  }
-
-  quota_settings {
-    limit  = 10000
-    period = "DAY"     # DAY | WEEK | MONTH
+    rate_limit  = 2000   # requisições/segundo (média)
+    burst_limit = 400   # pico
   }
 
   tags = var.common_tags
