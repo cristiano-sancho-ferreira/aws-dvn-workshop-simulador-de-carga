@@ -157,6 +157,8 @@ locals {
   }
 }
 
+
+
 resource "aws_s3_object" "site" {
   for_each = local.site_files
 

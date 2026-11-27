@@ -425,7 +425,7 @@ resource "aws_api_gateway_integration" "orders_batch_post" {
     {
       "Id": "$foreach.index",
       "MessageBody": "$util.escapeJavaScript($input.json($path)).replaceAll("\\'","'")",
-      "MessageGroupId": "${runId}-${shard}",
+      "MessageGroupId": "$${runId}-$${shard}",
       "MessageDeduplicationId": "$order.orderId"
     }#if($foreach.hasNext),#end
 #end
