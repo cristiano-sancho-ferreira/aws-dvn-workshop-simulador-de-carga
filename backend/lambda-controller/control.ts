@@ -28,6 +28,7 @@ function response(statusCode: number, body: unknown): APIGatewayProxyResult {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
     },
     body: JSON.stringify(body),
   };

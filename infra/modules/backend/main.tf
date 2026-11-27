@@ -229,7 +229,7 @@ resource "aws_lambda_function" "generator" {
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-generator.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-generator.zip")
-  timeout          = 10
+  timeout          = 900 # Duração máxima de 600 s, atraso inicial e finalização.
 
   environment {
     variables = {
