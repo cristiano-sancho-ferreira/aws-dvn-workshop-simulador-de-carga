@@ -38,7 +38,7 @@ resource "null_resource" "site_env" {
   }
 
   provisioner "local-exec" {
-    interpreter = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command"]
-    command     = "Set-Content -Path '${path.root}/../site/.env' -Value @('# URL base do API Gateway, incluindo o stage.', 'VITE_API_URL=${self.triggers.api_url}') -Encoding utf8"
+    working_dir = path.root
+    command     = "node -e \"require('fs').writeFileSync('../site/.env', '# URL base do API Gateway, incluindo o stage.\\nVITE_API_URL=${self.triggers.api_url}\\n')\""
   }
 }
