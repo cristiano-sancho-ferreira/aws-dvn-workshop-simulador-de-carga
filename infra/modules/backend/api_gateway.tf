@@ -292,7 +292,10 @@ resource "aws_api_gateway_integration" "orders_post" {
 
   request_templates = {
     "application/json" = <<EOF
-Action=SendMessage&QueueUrl=$util.urlEncode('${aws_sqs_queue.this.url}')&MessageBody=$util.urlEncode($input.body)&MessageGroupId=$input.json('$.shard')
+Action=SendMessage
+&MessageBody=$util.urlEncode($input.body)
+&MessageGroupId=$util.urlEncode($input.path("$.runId"))-$util.urlEncode($input.path("$.shard"))
+&MessageDeduplicationId=$util.urlEncode($input.path("$.orderId"))
 EOF
   }
 }
@@ -403,7 +406,22 @@ resource "aws_api_gateway_integration" "orders_batch_post" {
 
   request_templates = {
     "application/json" = <<EOF
-Action=SendMessage&QueueUrl=$util.urlEncode('${aws_sqs_queue.this.url}')&MessageBody=$util.urlEncode($input.body)&MessageGroupId=$input.json('$.shard')
+{
+  "QueueUrl": "https://sqs.us-east-1.amazonaws.com/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}.fifo",
+  "Entries": [
+#foreach($order in $input.path('$.orders'))
+  #set($path = "$.orders[$foreach.index]")
+  #set($runId = $order.runId)
+  #set($shard = $order.shard)
+    {
+      "Id": "$foreach.index",
+      "MessageBody": "$util.escapeJavaScript($input.json($path)).replaceAll("\\'","'")",
+      "MessageGroupId": "${runId}-${shard}",
+      "MessageDeduplicationId": "$order.orderId"
+    }#if($foreach.hasNext),#end
+#end
+  ]
+}
 EOF
   }
 }
@@ -519,7 +537,7 @@ resource "aws_api_gateway_model" "order" {
   rest_api_id  = aws_api_gateway_rest_api.this.id
   name         = "Order"
   content_type = "application/json"
-  description  = " orders request payload"
+  description  = "Orders request payload"
   schema       = <<EOF
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
