@@ -169,6 +169,21 @@ resource "aws_s3_object" "site" {
   tags = var.common_tags
 }
 
+resource "null_resource" "cloudfront_invalidation" {
+  triggers = {
+    distribution_id = aws_cloudfront_distribution.this.id
+    site_content_hash = sha1(jsonencode({
+      for file in sort(tolist(local.site_files)) : file => filemd5("${local.site_dir}/${file}")
+    }))
+  }
+
+  provisioner "local-exec" {
+    command = "aws cloudfront create-invalidation --distribution-id ${self.triggers.distribution_id} --paths \"/*\" --region us-east-1"
+  }
+
+  depends_on = [aws_s3_object.site]
+}
+
 # ============================================================
 # Zips das Lambdas
 # O buildspec gera os zips em backend/dist/ (raiz do repositório).
@@ -241,10 +256,10 @@ resource "aws_lambda_function" "processor" {
 }
 
 resource "aws_lambda_event_source_mapping" "sqs_processor" {
-  event_source_arn  = aws_sqs_queue.this.arn
-  function_name     = aws_lambda_function.processor.function_name
-  batch_size        = 10
-  
+  event_source_arn = aws_sqs_queue.this.arn
+  function_name    = aws_lambda_function.processor.function_name
+  batch_size       = 10
+
   depends_on = [aws_lambda_permission.allow_sqs]
 }
 
@@ -269,7 +284,7 @@ resource "aws_iam_role" "controller" {
       Effect    = "Allow"
       Principal = { Service = "lambda.amazonaws.com" }
       Action    = "sts:AssumeRole"
-      }]
+    }]
   })
 
   tags = var.common_tags
@@ -474,7 +489,7 @@ resource "aws_lambda_permission" "sqs" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.controller.function_name
   principal     = "sqs.amazonaws.com"
-  source_arn    = aws_sqs_queue.this.arn  
+  source_arn    = aws_sqs_queue.this.arn
 }
 
 
