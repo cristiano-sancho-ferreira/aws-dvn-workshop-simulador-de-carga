@@ -204,7 +204,7 @@ locals {
 resource "aws_lambda_function" "controller" {
   function_name    = "${var.name_prefix}-controller"
   role             = aws_iam_role.controller.arn
-  handler          = "index.handler"
+  handler          = "lambda-controller/control.handler"
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-controller.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-controller.zip")
@@ -225,7 +225,7 @@ resource "aws_lambda_function" "controller" {
 resource "aws_lambda_function" "generator" {
   function_name    = "${var.name_prefix}-generator"
   role             = aws_iam_role.generator.arn
-  handler          = "index.handler"
+  handler          = "lambda-generator/generator.handler"
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-generator.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-generator.zip")
@@ -243,7 +243,7 @@ resource "aws_lambda_function" "generator" {
 resource "aws_lambda_function" "processor" {
   function_name    = "${var.name_prefix}-processor"
   role             = aws_iam_role.processor.arn
-  handler          = "index.handler"
+  handler          = "lambda-processor/processor.handler"
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-processor.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-processor.zip")
