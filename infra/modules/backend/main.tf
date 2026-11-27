@@ -125,7 +125,7 @@ resource "aws_cloudfront_origin_access_control" "this" {
 
 # ============================================================
 # Site estático (upload de site/dist para o bucket)
-# O buildspec gera o build do site em site/dist/ antes do terraform.
+# O buildspec cria site/dist antes do Terraform e refaz o build apos gerar site/.env.
 # O fileset varre recursivamente (inclui a pasta assets/) e cada arquivo
 # vira um aws_s3_object; arquivos que saem do build são removidos no apply.
 # ============================================================

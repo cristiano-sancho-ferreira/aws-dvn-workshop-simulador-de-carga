@@ -32,13 +32,6 @@ module "backend" {
   common_tags       = local.common_tags
 }
 
-resource "null_resource" "site_env" {
-  triggers = {
-    api_url = module.backend.api_url
-  }
-
-  provisioner "local-exec" {
-    working_dir = path.root
-    command     = "node -e \"require('fs').writeFileSync('../site/.env', '# URL base do API Gateway, incluindo o stage.\\nVITE_API_URL=${self.triggers.api_url}\\n')\""
-  }
+output "api_url" {
+  value = module.backend.api_url
 }
