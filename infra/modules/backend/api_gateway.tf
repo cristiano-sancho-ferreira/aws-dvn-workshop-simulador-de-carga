@@ -513,8 +513,14 @@ resource "aws_api_gateway_deployment" "this" {
       aws_api_gateway_integration.orders_batch_options,
       aws_api_gateway_integration_response.orders_post_202,
       aws_api_gateway_integration_response.orders_batch_post_202,
-      aws_api_gateway_gateway_response.default_4xx,
-      aws_api_gateway_gateway_response.default_5xx,
+      {
+        response_type       = aws_api_gateway_gateway_response.default_4xx.response_type
+        response_parameters = aws_api_gateway_gateway_response.default_4xx.response_parameters
+      },
+      {
+        response_type       = aws_api_gateway_gateway_response.default_5xx.response_type
+        response_parameters = aws_api_gateway_gateway_response.default_5xx.response_parameters
+      },
     ]))
   }
 
