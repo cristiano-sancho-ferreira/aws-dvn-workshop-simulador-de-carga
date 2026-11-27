@@ -31,3 +31,14 @@ module "backend" {
   name_prefix       = local.name_prefix
   common_tags       = local.common_tags
 }
+
+resource "null_resource" "site_env" {
+  triggers = {
+    api_url = module.backend.api_url
+  }
+
+  provisioner "local-exec" {
+    interpreter = ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command"]
+    command     = "Set-Content -Path '${path.root}/../site/.env' -Value @('# URL base do API Gateway, incluindo o stage.', 'VITE_API_URL=${self.triggers.api_url}') -Encoding utf8"
+  }
+}

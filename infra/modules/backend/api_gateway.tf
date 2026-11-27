@@ -502,9 +502,13 @@ resource "aws_api_gateway_deployment" "this" {
 resource "aws_api_gateway_stage" "prod" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
   deployment_id = aws_api_gateway_deployment.this.id
-  stage_name    = "prod"
+  stage_name    = "live"
 
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
+}
+
+output "api_url" {
+  value = "https://${aws_api_gateway_rest_api.this.id}.execute-api.${var.region}.amazonaws.com/${aws_api_gateway_stage.prod.stage_name}"
 }
 
 resource "aws_api_gateway_api_key" "this" {
