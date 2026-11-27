@@ -20,10 +20,10 @@ resource "aws_api_gateway_resource" "runs" {
 }
 
 resource "aws_api_gateway_method" "runs_post" {
-  rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.runs.id
-  http_method   = "POST"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.runs.id
+  http_method      = "POST"
+  authorization    = "NONE"
   api_key_required = true
 }
 
@@ -35,10 +35,10 @@ resource "aws_api_gateway_method" "runs_options" {
 }
 
 resource "aws_api_gateway_integration" "runs_options" {
-  rest_api_id      = aws_api_gateway_rest_api.this.id
-  resource_id      = aws_api_gateway_resource.runs.id
-  http_method      = aws_api_gateway_method.runs_options.http_method
-  type             = "MOCK"
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs.id
+  http_method = aws_api_gateway_method.runs_options.http_method
+  type        = "MOCK"
   request_templates = {
     "application/json" = "{\"statusCode\": 200}"
   }
@@ -82,10 +82,10 @@ resource "aws_api_gateway_integration" "runs_post" {
 }
 
 resource "aws_api_gateway_method" "runs_get" {
-  rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.runs.id
-  http_method   = "GET"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.runs.id
+  http_method      = "GET"
+  authorization    = "NONE"
   api_key_required = true
 }
 
@@ -129,10 +129,10 @@ resource "aws_api_gateway_resource" "runs_runid" {
 }
 
 resource "aws_api_gateway_method" "runs_runid_get" {
-  rest_api_id   = aws_api_gateway_rest_api.this.id
-  resource_id   = aws_api_gateway_resource.runs_runid.id
-  http_method   = "GET"
-  authorization = "NONE"
+  rest_api_id      = aws_api_gateway_rest_api.this.id
+  resource_id      = aws_api_gateway_resource.runs_runid.id
+  http_method      = "GET"
+  authorization    = "NONE"
   api_key_required = true
 }
 
@@ -153,10 +153,10 @@ resource "aws_api_gateway_method" "runs_runid_options" {
 }
 
 resource "aws_api_gateway_integration" "runs_runid_options" {
-  rest_api_id      = aws_api_gateway_rest_api.this.id
-  resource_id      = aws_api_gateway_resource.runs_runid.id
-  http_method      = aws_api_gateway_method.runs_runid_options.http_method
-  type             = "MOCK"
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.runs_runid.id
+  http_method = aws_api_gateway_method.runs_runid_options.http_method
+  type        = "MOCK"
   request_templates = {
     "application/json" = "{\"statusCode\": 200}"
   }
@@ -243,10 +243,10 @@ resource "aws_api_gateway_method" "orders_options" {
 }
 
 resource "aws_api_gateway_integration" "orders_options" {
-  rest_api_id      = aws_api_gateway_rest_api.this.id
-  resource_id      = aws_api_gateway_resource.orders.id
-  http_method      = aws_api_gateway_method.orders_options.http_method
-  type             = "MOCK"
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders.id
+  http_method = aws_api_gateway_method.orders_options.http_method
+  type        = "MOCK"
   request_templates = {
     "application/json" = "{\"statusCode\": 200}"
   }
@@ -288,7 +288,11 @@ resource "aws_api_gateway_integration" "orders_post" {
   integration_http_method = "POST"
   # Path override  
   uri         = "arn:aws:apigateway:${var.region}:sqs:path/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}"
-  credentials             = aws_iam_role.api_gateway.arn
+  credentials = aws_iam_role.api_gateway.arn
+
+  request_parameters = {
+    "integration.request.header.Content-Type" = "'application/x-www-form-urlencoded'"
+  }
 
   request_templates = {
     "application/json" = <<EOF
@@ -301,11 +305,11 @@ EOF
 }
 
 resource "aws_api_gateway_method_response" "orders_post_202" {
-  rest_api_id       = aws_api_gateway_rest_api.this.id
-  resource_id       = aws_api_gateway_resource.orders.id
-  http_method       = aws_api_gateway_method.orders_post.http_method
-  status_code       = "202"
-  response_models   = { "application/json" = "Empty" }
+  rest_api_id     = aws_api_gateway_rest_api.this.id
+  resource_id     = aws_api_gateway_resource.orders.id
+  http_method     = aws_api_gateway_method.orders_post.http_method
+  status_code     = "202"
+  response_models = { "application/json" = "Empty" }
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Origin" = true
@@ -313,10 +317,10 @@ resource "aws_api_gateway_method_response" "orders_post_202" {
 }
 
 resource "aws_api_gateway_integration_response" "orders_post_202" {
-  rest_api_id       = aws_api_gateway_rest_api.this.id
-  resource_id       = aws_api_gateway_resource.orders.id
-  http_method       = aws_api_gateway_method.orders_post.http_method
-  status_code       = aws_api_gateway_method_response.orders_post_202.status_code
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders.id
+  http_method = aws_api_gateway_method.orders_post.http_method
+  status_code = aws_api_gateway_method_response.orders_post_202.status_code
   response_templates = {
     "application/json" = <<EOF
 {
@@ -358,10 +362,10 @@ resource "aws_api_gateway_method" "orders_batch_options" {
 }
 
 resource "aws_api_gateway_integration" "orders_batch_options" {
-  rest_api_id      = aws_api_gateway_rest_api.this.id
-  resource_id      = aws_api_gateway_resource.orders_batch.id
-  http_method      = aws_api_gateway_method.orders_batch_options.http_method
-  type             = "MOCK"
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders_batch.id
+  http_method = aws_api_gateway_method.orders_batch_options.http_method
+  type        = "MOCK"
   request_templates = {
     "application/json" = "{\"statusCode\": 200}"
   }
@@ -404,6 +408,11 @@ resource "aws_api_gateway_integration" "orders_batch_post" {
   uri                     = "arn:aws:apigateway:${var.region}:sqs:path/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}"
   credentials             = aws_iam_role.api_gateway.arn
 
+  request_parameters = {
+    "integration.request.header.Content-Type" = "'application/x-amz-json-1.0'"
+    "integration.request.header.X-Amz-Target" = "'AmazonSQS.SendMessageBatch'"
+  }
+
   request_templates = {
     "application/json" = <<EOF
 {
@@ -428,11 +437,11 @@ EOF
 
 
 resource "aws_api_gateway_method_response" "orders_batch_post_202" {
-  rest_api_id       = aws_api_gateway_rest_api.this.id
-  resource_id       = aws_api_gateway_resource.orders_batch.id
-  http_method       = aws_api_gateway_method.orders_batch_post.http_method
-  status_code       = "202"
-  response_models   = { "application/json" = "Empty" }
+  rest_api_id     = aws_api_gateway_rest_api.this.id
+  resource_id     = aws_api_gateway_resource.orders_batch.id
+  http_method     = aws_api_gateway_method.orders_batch_post.http_method
+  status_code     = "202"
+  response_models = { "application/json" = "Empty" }
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Origin" = true
@@ -440,10 +449,10 @@ resource "aws_api_gateway_method_response" "orders_batch_post_202" {
 }
 
 resource "aws_api_gateway_integration_response" "orders_batch_post_202" {
-  rest_api_id       = aws_api_gateway_rest_api.this.id
-  resource_id       = aws_api_gateway_resource.orders_batch.id
-  http_method       = aws_api_gateway_method.orders_batch_post.http_method
-  status_code       = aws_api_gateway_method_response.orders_batch_post_202.status_code
+  rest_api_id = aws_api_gateway_rest_api.this.id
+  resource_id = aws_api_gateway_resource.orders_batch.id
+  http_method = aws_api_gateway_method.orders_batch_post.http_method
+  status_code = aws_api_gateway_method_response.orders_batch_post_202.status_code
   response_templates = {
     "application/json" = <<EOF
 {
@@ -494,7 +503,7 @@ resource "aws_api_gateway_stage" "prod" {
   rest_api_id   = aws_api_gateway_rest_api.this.id
   deployment_id = aws_api_gateway_deployment.this.id
   stage_name    = "prod"
-  
+
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
 }
 
@@ -515,8 +524,8 @@ resource "aws_api_gateway_usage_plan" "this" {
   }
 
   throttle_settings {
-    rate_limit  = 2000   # requisições/segundo (média)
-    burst_limit = 400   # pico
+    rate_limit  = 2000 # requisições/segundo (média)
+    burst_limit = 400  # pico
   }
 
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
