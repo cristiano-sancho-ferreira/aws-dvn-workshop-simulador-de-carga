@@ -449,9 +449,9 @@ resource "aws_iam_role_policy" "processor" {
 resource "aws_sqs_queue" "this" {
   name                        = "${var.name_prefix}-pedidos.fifo"
   fifo_queue                  = true
-  content_based_deduplication = true
-  deduplication_scope = local.high_throughput_enabled ? "messageGroup" : "queue"
-  fifo_throughput_limit = local.high_throughput_enabled ? "perMessageGroupId" : "perQueue"
+  content_based_deduplication = false
+  deduplication_scope         = local.high_throughput_enabled ? "messageGroup" : "queue"
+  fifo_throughput_limit       = local.high_throughput_enabled ? "perMessageGroupId" : "perQueue"
   message_retention_seconds   = 1209600
   visibility_timeout_seconds  = 1800
 

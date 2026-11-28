@@ -594,8 +594,8 @@ resource "aws_api_gateway_usage_plan" "this" {
   }
 
   throttle_settings {
-    rate_limit  = 2000 # requisições/segundo (média)
-    burst_limit = 400  # pico
+    rate_limit  = 3000 # requisições/segundo (média)
+    burst_limit = 600  # pico
   }
 
   tags = merge(var.common_tags, { Name = "${var.name_prefix}-api_gateway" })
