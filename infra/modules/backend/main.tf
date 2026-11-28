@@ -319,11 +319,18 @@ resource "aws_iam_role_policy" "controller" {
       {
         Effect = "Allow"
         Action = ["sqs:ReceiveMessage",
-          "sqs:DeleteMessage",
-          "sqs:GetQueueAttributes"
+          "sqs:DeleteMessage"
         ]
         Resource = [
           aws_sqs_queue.this.arn
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["sqs:GetQueueAttributes"]
+        Resource = [
+          aws_sqs_queue.this.arn,
+          aws_sqs_queue.dlq.arn
         ]
       },
       {
