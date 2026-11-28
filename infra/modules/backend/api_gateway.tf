@@ -438,7 +438,7 @@ resource "aws_api_gateway_integration" "orders_batch_post" {
   request_templates = {
     "application/json" = <<EOF
 {
-  "QueueUrl": "https://sqs.us-east-1.amazonaws.com/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}.fifo",
+  "QueueUrl": "https://sqs.${var.region}.amazonaws.com/${data.aws_caller_identity.current.account_id}/${aws_sqs_queue.this.name}",
   "Entries": [
 #foreach($order in $input.path('$.orders'))
   #set($path = "$.orders[$foreach.index]")
@@ -470,11 +470,40 @@ resource "aws_api_gateway_method_response" "orders_batch_post_202" {
   }
 }
 
+resource "aws_api_gateway_method_response" "orders_batch_post_502" {
+  rest_api_id     = aws_api_gateway_rest_api.this.id
+  resource_id     = aws_api_gateway_resource.orders_batch.id
+  http_method     = aws_api_gateway_method.orders_batch_post.http_method
+  status_code     = "502"
+  response_models = { "application/json" = "Empty" }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
 resource "aws_api_gateway_integration_response" "orders_batch_post_202" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   resource_id = aws_api_gateway_resource.orders_batch.id
   http_method = aws_api_gateway_method.orders_batch_post.http_method
   status_code = aws_api_gateway_method_response.orders_batch_post_202.status_code
+  response_templates = {
+    "application/json" = "$input.body"
+  }
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.orders_batch_post]
+}
+
+resource "aws_api_gateway_integration_response" "orders_batch_post_502" {
+  rest_api_id       = aws_api_gateway_rest_api.this.id
+  resource_id       = aws_api_gateway_resource.orders_batch.id
+  http_method       = aws_api_gateway_method.orders_batch_post.http_method
+  status_code       = aws_api_gateway_method_response.orders_batch_post_502.status_code
+  selection_pattern = "[45][0-9][0-9]"
   response_templates = {
     "application/json" = "$input.body"
   }
@@ -508,6 +537,17 @@ resource "aws_api_gateway_deployment" "this" {
       aws_api_gateway_integration.orders_batch_options,
       aws_api_gateway_integration_response.orders_post_202,
       aws_api_gateway_integration_response.orders_batch_post_202,
+      {
+        status_code         = aws_api_gateway_method_response.orders_batch_post_502.status_code
+        response_models     = aws_api_gateway_method_response.orders_batch_post_502.response_models
+        response_parameters = aws_api_gateway_method_response.orders_batch_post_502.response_parameters
+      },
+      {
+        status_code         = aws_api_gateway_integration_response.orders_batch_post_502.status_code
+        selection_pattern   = aws_api_gateway_integration_response.orders_batch_post_502.selection_pattern
+        response_templates  = aws_api_gateway_integration_response.orders_batch_post_502.response_templates
+        response_parameters = aws_api_gateway_integration_response.orders_batch_post_502.response_parameters
+      },
       {
         response_type       = aws_api_gateway_gateway_response.default_4xx.response_type
         response_parameters = aws_api_gateway_gateway_response.default_4xx.response_parameters

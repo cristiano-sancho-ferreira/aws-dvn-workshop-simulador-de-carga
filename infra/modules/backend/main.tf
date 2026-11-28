@@ -208,7 +208,7 @@ resource "aws_lambda_function" "controller" {
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-controller.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-controller.zip")
-  timeout          = 10
+  timeout          = 25 # O relatório consulta até 1.024 partições e duas filas.
 
   environment {
     variables = {
