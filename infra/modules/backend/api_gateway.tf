@@ -147,7 +147,7 @@ resource "aws_api_gateway_integration_response" "runs_get_200" {
 resource "aws_api_gateway_resource" "runs_runid" {
   rest_api_id = aws_api_gateway_rest_api.this.id
   parent_id   = aws_api_gateway_resource.runs.id
-  path_part   = "{runid}"
+  path_part   = "{runId}"
 }
 
 resource "aws_api_gateway_method" "runs_runid_get" {
@@ -524,6 +524,7 @@ resource "aws_api_gateway_deployment" "this" {
       aws_api_gateway_method.runs_post,
       aws_api_gateway_method.runs_get,
       aws_api_gateway_method.runs_runid_get,
+      aws_api_gateway_resource.runs_runid.path_part,
       aws_api_gateway_method.orders_post,
       aws_api_gateway_method.orders_batch_post,
       aws_api_gateway_integration.runs_post,
