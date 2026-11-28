@@ -476,12 +476,7 @@ resource "aws_api_gateway_integration_response" "orders_batch_post_202" {
   http_method = aws_api_gateway_method.orders_batch_post.http_method
   status_code = aws_api_gateway_method_response.orders_batch_post_202.status_code
   response_templates = {
-    "application/json" = <<EOF
-{
-  "accepted": true,
-  "messageId": "$util.xpath('/*[local-name()=\"SendMessageResponse\"]/*[local-name()=\"SendMessageResult\"]/*[local-name()=\"MessageId\"]/text()', $input.path('$'))"
-}
-EOF
+    "application/json" = "$input.body"
   }
 
   response_parameters = {
