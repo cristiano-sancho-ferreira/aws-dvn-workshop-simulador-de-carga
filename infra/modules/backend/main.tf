@@ -194,7 +194,8 @@ resource "null_resource" "cloudfront_invalidation" {
 # ============================================================
 
 locals {
-  zip_dir = "${path.module}/../../../backend/dist"
+  zip_dir                = "${path.module}/../../../backend/dist"
+  high_throughput_enabled = true
 }
 
 # ============================================================
@@ -229,7 +230,8 @@ resource "aws_lambda_function" "generator" {
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-generator.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-generator.zip")
-  timeout          = 900 # Duração máxima de 600 s, atraso inicial e finalização.
+  timeout          = 300 # Duração máxima de 600 s, atraso inicial e finalização.
+  memory_size      = 512
 
   environment {
     variables = {
@@ -247,7 +249,8 @@ resource "aws_lambda_function" "processor" {
   runtime          = "nodejs26.x"
   filename         = "${local.zip_dir}/lambda-processor.zip"
   source_code_hash = filebase64sha256("${local.zip_dir}/lambda-processor.zip")
-  timeout          = 10
+  timeout          = 300 # Duração máxima de 600 s, atraso inicial e finalização.
+  memory_size      = 512
 
   environment {
     variables = {
@@ -261,6 +264,10 @@ resource "aws_lambda_event_source_mapping" "sqs_processor" {
   event_source_arn = aws_sqs_queue.this.arn
   function_name    = aws_lambda_function.processor.function_name
   batch_size       = 10
+
+  scaling_config {
+    maximum_concurrency = 450
+  }
 
   depends_on = [aws_lambda_permission.allow_sqs]
 }
@@ -443,9 +450,10 @@ resource "aws_sqs_queue" "this" {
   name                        = "${var.name_prefix}-pedidos.fifo"
   fifo_queue                  = true
   content_based_deduplication = true
-  deduplication_scope         = "queue"
+  deduplication_scope = local.high_throughput_enabled ? "messageGroup" : "queue"
+  fifo_throughput_limit = local.high_throughput_enabled ? "perMessageGroupId" : "perQueue"
   message_retention_seconds   = 1209600
-  visibility_timeout_seconds  = 30
+  visibility_timeout_seconds  = 1800
 
   # Após maxReceiveCount tentativas de processamento sem sucesso,
   # a mensagem é automaticamente movida para a DLQ.
@@ -510,8 +518,14 @@ resource "aws_lambda_permission" "sqs" {
 resource "aws_dynamodb_table" "this" {
   name         = "dvn-workshop-table"
   billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "pk"
-  range_key    = "sk"
+
+  warm_throughput {
+    read_units_per_second  = 12000
+    write_units_per_second = 12000
+  }
+
+  hash_key  = "pk"
+  range_key = "sk"
 
   ttl {
     attribute_name = "ttl"
