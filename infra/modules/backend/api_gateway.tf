@@ -115,7 +115,7 @@ resource "aws_api_gateway_integration" "runs_get" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
   resource_id             = aws_api_gateway_resource.runs.id
   http_method             = aws_api_gateway_method.runs_get.http_method
-  integration_http_method = "GET"
+  integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.controller.invoke_arn
 }
@@ -162,7 +162,7 @@ resource "aws_api_gateway_integration" "runs_runid_get" {
   rest_api_id             = aws_api_gateway_rest_api.this.id
   resource_id             = aws_api_gateway_resource.runs_runid.id
   http_method             = aws_api_gateway_method.runs_runid_get.http_method
-  integration_http_method = "GET"
+  integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.controller.invoke_arn
 }
